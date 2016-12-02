@@ -2,6 +2,7 @@ module Main exposing (..)
 
 import Html exposing (Html)
 import Html.Events as HE
+import Html.Attributes as HA
 import Time
 import MsgControl
 
@@ -69,7 +70,7 @@ view : Model -> Html Msg
 view model =
     Html.div []
         [ Html.button
-            [ HE.onClick (debounce Increment) ]
+            [ HA.map debounce <| HE.onClick Increment ]
             [ Html.text "Increment" ]
         , Html.text <| toString model.count
         ]

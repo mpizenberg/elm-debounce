@@ -103,10 +103,16 @@ And of course, since we hold the state, we need to give it to the update.
 
 Finally, we need a slight modification of the view.
 This is to guide the message generated on click to the controls.
-For that, we use the `wrap` helper function from the module.
+For that, we double wrap our message (better than your fastfood!).
+First we use the `MsgControl.wrap` helper to transform the `Msg`
+into a `MsgControl.Msg Msg`.
+Then we use our `Debounce` wrapper to transform it back to a `Msg`
+and guide it to the right controlled update.
 
 ```elm
-view model = ... button [ onClick (debounce Clicked) ] ...
+import Html.Attributes as HA
+
+view model = ... button [ HA.map debounce <| onClick Clicked ] ...
 
 debounce : Msg -> Msg
 debounce =
