@@ -39,7 +39,7 @@ init =
 
 type Msg
     = Increment
-    | Debounce (MsgControl.Msg Msg)
+    | Throttle (MsgControl.Msg Msg)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -50,12 +50,12 @@ update msg model =
             , Cmd.none
             )
 
-        Debounce controlMsg ->
+        Throttle controlMsg ->
             let
                 ( newState, cmd ) =
                     MsgControl.update
-                        (Debounce)
-                        (MsgControl.debouncing <| 1 * Time.second)
+                        (Throttle)
+                        (MsgControl.throttling <| 1 * Time.second)
                         (controlMsg)
                         (model.state)
             in
@@ -70,12 +70,12 @@ view : Model -> Html Msg
 view model =
     Html.div []
         [ Html.button
-            [ HA.map debounce <| HE.onClick Increment ]
-            [ Html.text "Increment" ]
+            [ HA.map throttle <| HE.onClick Increment ]
+            [ Html.text "Click Fast!" ]
         , Html.text <| toString model.count
         ]
 
 
-debounce : Msg -> Msg
-debounce =
-    Debounce << MsgControl.wrap
+throttle : Msg -> Msg
+throttle =
+    Throttle << MsgControl.wrap
