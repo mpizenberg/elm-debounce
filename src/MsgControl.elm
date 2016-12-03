@@ -8,110 +8,42 @@ module MsgControl
         ( Strategy
         , debouncing
         , throttling
+          -- model
         , State
         , init
+          -- update
         , Msg
         , MsgWrapper
-        , wrap
         , update
+          -- view
+        , wrap
         )
 
 {-| Control messages.
 
-@docs Strategy, debouncing, throttling
+# Different strategies available
+
+@docs debouncing, throttling, Strategy
+
+# Modification of the model
+
 @docs State, init
-@docs Msg, MsgWrapper, wrap, update
+
+# Modification of the update
+
+@docs Msg, update, MsgWrapper
+
+# Modification of the view
+
+@docs wrap
+
 -}
 
 import Time exposing (Time)
 import Helpers
 
 
-{-| Control state to be stored in the model.
-
-    type alias Model = { ... , state : MsgControl.State Msg }
--}
-type State msg
-    = State Int (Maybe msg)
-
-
-{-| Initial state.
-
-    initialModel = { ... , state = MsgControl.init }
--}
-init : State msg
-init =
-    State 0 Nothing
-
-
-{-| Increment the state.
--}
-increment : msg -> State msg -> State msg
-increment msg (State int _) =
-    State (int + 1) (Just msg)
-
-
-{-| Compare two states.
--}
-sameState : State msg -> State msg -> Bool
-sameState (State int1 _) (State int2 _) =
-    int1 == int2
-
-
-{-| Indicate if a state contains only one message or not.
--}
-uniqueMsg : State msg -> Bool
-uniqueMsg (State nbMsg _) =
-    nbMsg == 1
-
-
-{-| Internal messages.
--}
-type Msg msg
-    = Raw msg
-    | Deferred (State msg) msg
-    | Loop Time msg
-
-
-{-| A wrapper for the internal controlled messages.
--}
-type alias MsgWrapper msg =
-    Msg msg -> msg
-
-
-{-| Inverse wrapper, wrap an outside raw message into an internal message.
-Key helper to control raw messages.
-
-    view model = ... button [ HA.map debounce <| onClick Clicked ] ...
-
-    debounce : Msg -> Msg
-    debounce =
-        Debounce << MsgControl.wrap
--}
-wrap : msg -> Msg msg
-wrap =
-    Raw
-
-
-{-| Update the controlled state of a message.
--}
-update : MsgWrapper msg -> Strategy msg -> Msg msg -> State msg -> ( State msg, Cmd msg )
-update msgWrapper strategy controlMsg currentState =
-    case controlMsg of
-        -- A Raw msg encapsulates an event to control.
-        Raw msg ->
-            increment msg currentState
-                |> strategy msgWrapper msg
-
-        -- A Deferred msg encapsulates an old msg that we will perform
-        -- only if no new message was emitted since this was deferred.
-        Deferred oldState oldMsg ->
-            deferred oldState msgWrapper oldMsg currentState
-
-        -- Loop will simply perform the more recent message
-        -- and reprogram itself for later.
-        Loop delay msg ->
-            loop delay msgWrapper msg currentState
+-- STRATEGIES ########################################################
 
 
 {-| The controlling strategy.
@@ -191,3 +123,115 @@ loop delay msgWrapper _ state =
 
         _ ->
             ( state, Cmd.none )
+
+
+
+-- MODEL #############################################################
+
+
+{-| Control state to be stored in the model.
+
+    type alias Model = { ... , state : MsgControl.State Msg }
+-}
+type State msg
+    = State Int (Maybe msg)
+
+
+{-| Initial state.
+
+    initialModel = { ... , state = MsgControl.init }
+-}
+init : State msg
+init =
+    State 0 Nothing
+
+
+{-| Increment the state.
+-}
+increment : msg -> State msg -> State msg
+increment msg (State int _) =
+    State (int + 1) (Just msg)
+
+
+{-| Compare two states.
+-}
+sameState : State msg -> State msg -> Bool
+sameState (State int1 _) (State int2 _) =
+    int1 == int2
+
+
+{-| Indicate if a state contains only one message or not.
+-}
+uniqueMsg : State msg -> Bool
+uniqueMsg (State nbMsg _) =
+    nbMsg == 1
+
+
+
+-- UPDATE ############################################################
+
+
+{-| Internal messages.
+-}
+type Msg msg
+    = Raw msg
+    | Deferred (State msg) msg
+    | Loop Time msg
+
+
+{-| A wrapper for the internal controlled messages.
+-}
+type alias MsgWrapper msg =
+    Msg msg -> msg
+
+
+{-| Update the controlled state of a message.
+
+    update msg model = case msg of
+        ...
+        Throttle controlMsg ->
+            let
+                ( newState, cmd ) =
+                    MsgControl.update
+                        (Throttle) -- The message wrapper
+                        (MsgControl.throttling <| 1 * Time.second) -- The strategy
+                        (controlMsg) -- The internal message
+                        (model.state) -- The current state
+            in
+                ( { model | state = newState }, cmd )
+-}
+update : MsgWrapper msg -> Strategy msg -> Msg msg -> State msg -> ( State msg, Cmd msg )
+update msgWrapper strategy controlMsg currentState =
+    case controlMsg of
+        -- A Raw msg encapsulates an event to control.
+        Raw msg ->
+            increment msg currentState
+                |> strategy msgWrapper msg
+
+        -- A Deferred msg encapsulates an old msg that we will perform
+        -- only if no new message was emitted since this was deferred.
+        Deferred oldState oldMsg ->
+            deferred oldState msgWrapper oldMsg currentState
+
+        -- Loop will simply perform the more recent message
+        -- and reprogram itself for later.
+        Loop delay msg ->
+            loop delay msgWrapper msg currentState
+
+
+
+-- VIEW ##############################################################
+
+
+{-| Inverse wrapper, wrap an outside raw message into an internal message.
+Key helper to control raw messages.
+
+    view model = ... button [ HA.map debounce <| onClick Clicked ] ...
+
+    debounce : Msg -> Msg
+    debounce =
+        Debounce << MsgControl.wrap
+-}
+wrap : msg -> Msg msg
+wrap =
+    Raw
