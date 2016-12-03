@@ -27,31 +27,6 @@ import Time exposing (Time)
 import Helpers
 
 
-{-| The controlling strategy.
--}
-type Strategy
-    = Debounce Time
-    | Throttle Time
-
-
-{-| Create a debouncing strategy.
-
-    strategy = MsgControl.debouncing <| 1 * Time.second
--}
-debouncing : Time -> Strategy
-debouncing timeout =
-    Debounce timeout
-
-
-{-| Create a throttling strategy.
-
-    strategy = MsgControl.throttling <| 50 * Time.millisecond
--}
-throttling : Time -> Strategy
-throttling delay =
-    Throttle delay
-
-
 {-| Control state to be stored in the model.
 
     type alias Model = { ... , state : MsgControl.State Msg }
@@ -95,7 +70,7 @@ uniqueMsg (State nbMsg _) =
 type Msg msg
     = Raw msg
     | Deferred (State msg) msg
-    | Loop
+    | Loop Time msg
 
 
 {-| A wrapper for the internal controlled messages.
@@ -120,69 +95,99 @@ wrap =
 
 {-| Update the controlled state of a message.
 -}
-update : MsgWrapper msg -> Strategy -> Msg msg -> State msg -> ( State msg, Cmd msg )
+update : MsgWrapper msg -> Strategy msg -> Msg msg -> State msg -> ( State msg, Cmd msg )
 update msgWrapper strategy controlMsg currentState =
-    case ( controlMsg, strategy ) of
+    case controlMsg of
         -- A Raw msg encapsulates an event to control.
-        ( Raw msg, _ ) ->
-            let
-                newState =
-                    currentState
-                        |> increment msg
-
-                cmd =
-                    case strategy of
-                        -- If we chose a Debounce strategy, debounce the msg.
-                        Debounce timeout ->
-                            Deferred newState msg
-                                |> msgWrapper
-                                |> Helpers.mkDeferredCmd timeout
-
-                        -- If we chose a Throttle strategy, throttle the msg.
-                        Throttle delay ->
-                            if uniqueMsg newState then
-                                -- Only perform the captured message
-                                -- if it is the first one.
-                                performNowAndLoop msg delay msgWrapper
-                            else
-                                -- Ignore otherwise.
-                                Cmd.none
-            in
-                ( newState, cmd )
+        Raw msg ->
+            increment msg currentState
+                |> strategy msgWrapper msg
 
         -- A Deferred msg encapsulates an old msg that we will perform
         -- only if no new message was emitted since this was deferred.
-        ( Deferred oldState oldMsg, _ ) ->
-            ( currentState
-            , if sameState oldState currentState then
-                Helpers.mkCmd oldMsg
-              else
-                Cmd.none
-            )
+        Deferred oldState oldMsg ->
+            deferred oldState msgWrapper oldMsg currentState
 
         -- Loop will simply perform the more recent message
         -- and reprogram itself for later.
-        ( Loop, Throttle delay ) ->
-            case currentState of
-                -- Stop the loop if no new message was emitted.
-                State 1 _ ->
-                    ( init, Cmd.none )
+        Loop delay msg ->
+            loop delay msgWrapper msg currentState
 
-                State _ (Just msg) ->
-                    ( State 1 (Just msg)
-                    , performNowAndLoop msg delay msgWrapper
-                    )
 
-                _ ->
-                    ( currentState, Cmd.none )
+{-| The controlling strategy.
+-}
+type alias Strategy msg =
+    MsgWrapper msg -> msg -> State msg -> ( State msg, Cmd msg )
+
+
+{-| Create a debouncing strategy.
+
+    strategy = MsgControl.debouncing <| 1 * Time.second
+-}
+debouncing : Time -> Strategy msg
+debouncing timeout msgWrapper msg state =
+    -- If we chose a Debounce strategy, debounce the msg.
+    ( state
+    , Deferred state msg
+        |> msgWrapper
+        |> Helpers.mkDeferredCmd timeout
+    )
+
+
+{-| Create a throttling strategy.
+
+    strategy = MsgControl.throttling <| 50 * Time.millisecond
+-}
+throttling : Time -> Strategy msg
+throttling delay msgWrapper msg state =
+    -- If we chose a Throttle strategy, throttle the msg.
+    if uniqueMsg state then
+        -- Only perform the captured message
+        -- if it is the first one.
+        performNowAndLoop delay msgWrapper msg state
+    else
+        -- Ignore otherwise.
+        ( state, Cmd.none )
+
+
+{-| Perform a deferred message if no new message was emitted since this was deferred.
+-}
+deferred : State msg -> Strategy msg
+deferred oldState _ oldMsg currentState =
+    ( currentState
+    , if sameState oldState currentState then
+        Helpers.mkCmd oldMsg
+      else
+        Cmd.none
+    )
+
+
+{-| Perform the more recent message and program a the starting of a loop.
+-}
+performNowAndLoop : Time -> Strategy msg
+performNowAndLoop delay msgWrapper msg state =
+    ( state
+    , Cmd.batch
+        [ Helpers.mkCmd msg
+        , Loop delay msg
+            |> msgWrapper
+            |> Helpers.mkDeferredCmd delay
+        ]
+    )
+
+
+{-| Perform the more recent message and reprogram itself for later.
+-}
+loop : Time -> Strategy msg
+loop delay msgWrapper _ state =
+    case state of
+        -- Stop the loop if no new message was emitted.
+        State 1 _ ->
+            ( init, Cmd.none )
+
+        State _ (Just msg) ->
+            State 1 (Just msg)
+                |> performNowAndLoop delay msgWrapper msg
 
         _ ->
-            ( currentState, Cmd.none )
-
-
-performNowAndLoop : msg -> Time -> MsgWrapper msg -> Cmd msg
-performNowAndLoop msg delay msgWrapper =
-    Cmd.batch
-        [ Helpers.mkCmd msg
-        , Helpers.mkDeferredCmd delay (msgWrapper Loop)
-        ]
+            ( state, Cmd.none )
