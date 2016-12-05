@@ -5,8 +5,7 @@
 
 module MsgControl
     exposing
-        ( Strategy
-        , debouncing
+        ( debouncing
         , throttling
           -- model
         , State
@@ -23,7 +22,7 @@ module MsgControl
 
 # Different strategies available
 
-@docs debouncing, throttling, Strategy
+@docs debouncing, throttling
 
 # Modification of the model
 
