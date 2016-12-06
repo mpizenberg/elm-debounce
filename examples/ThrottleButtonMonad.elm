@@ -51,11 +51,8 @@ update msg model =
             )
 
         Throttle controller ->
-            let
-                ( cmd, newState ) =
-                    Controller.update model.state controller
-            in
-                ( { model | state = newState }, cmd )
+            Controller.update model.state controller
+                |> Controller.updateState (\newState -> { model | state = newState })
 
 
 

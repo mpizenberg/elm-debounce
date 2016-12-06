@@ -42,6 +42,11 @@ stateCmd (State _ maybeMsg) =
             Helpers.mkCmd msg
 
 
+updateState : (State msg -> model) -> ( Cmd msg, State msg ) -> ( model, Cmd msg )
+updateState setState ( cmd, state ) =
+    ( setState state, cmd )
+
+
 
 -- WRAPPERS ##########################################################
 
