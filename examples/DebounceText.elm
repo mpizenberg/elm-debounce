@@ -4,7 +4,8 @@ import Html exposing (Html)
 import Html.Events as HE
 import Html.Attributes as HA
 import Time
-import Controller exposing (Controller)
+import Control exposing (Control)
+import Debounce
 
 
 main =
@@ -22,13 +23,13 @@ main =
 
 type alias Model =
     { text : String
-    , state : Controller.State Msg
+    , state : Control.State Msg
     }
 
 
 initialModel : Model
 initialModel =
-    { text = "", state = Controller.initialState }
+    { text = "", state = Control.initialState }
 
 
 init : ( Model, Cmd Msg )
@@ -42,7 +43,7 @@ init =
 
 type Msg
     = Text String
-    | Deb (Controller Msg)
+    | Deb (Control Msg)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -53,9 +54,9 @@ update msg model =
             , Cmd.none
             )
 
-        Deb controller ->
-            Controller.update model.state controller
-                |> Controller.updateState (\newState -> { model | state = newState })
+        Deb control ->
+            Control.update model.state control
+                |> Control.updateState (\newState -> { model | state = newState })
 
 
 
@@ -79,4 +80,4 @@ view model =
 
 debounce : Msg -> Msg
 debounce =
-    Deb << Controller.debounce Deb (1 * Time.second)
+    Debounce.both Deb (1 * Time.second)

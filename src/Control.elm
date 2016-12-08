@@ -1,4 +1,4 @@
-module Controller exposing (..)
+module Control exposing (..)
 
 import Time exposing (Time)
 import Helpers
@@ -47,20 +47,20 @@ stateCmd (State _ maybeMsg) =
 
 
 type alias Wrapper msg =
-    Controller msg -> msg
+    Control msg -> msg
 
 
 
 -- UPDATE ############################################################
 
 
-type alias Controller msg =
+type alias Control msg =
     State msg -> Return msg (State msg)
 
 
-update : State msg -> Controller msg -> Return msg (State msg)
-update state controller =
-    controller state
+update : State msg -> Control msg -> Return msg (State msg)
+update state control =
+    control state
 
 
 updateState : (State msg -> model) -> ( State msg, Cmd msg ) -> ( model, Cmd msg )
@@ -70,29 +70,10 @@ updateState setState ( state, cmd ) =
 
 
 -- DEBOUNCING ########################################################
-
-
-deferred : State msg -> Controller msg
-deferred oldState newState =
-    if sameState oldState newState then
-        Return.return initialState (stateCmd newState)
-    else
-        Return.singleton newState
-
-
-debounce : Wrapper msg -> Time -> msg -> Controller msg
-debounce wrapper timeout msg state =
-    (increment msg state)
-        |> Return.singleton
-        |> Return.effect_
-            (Helpers.mkDeferredCmd timeout << wrapper << deferred)
-
-
-
 -- THROTTLING ########################################################
 
 
-throttle : Wrapper msg -> Time -> msg -> Controller msg
+throttle : Wrapper msg -> Time -> msg -> Control msg
 throttle wrapper delay msg state =
     if empty state then
         increment msg state
@@ -102,7 +83,7 @@ throttle wrapper delay msg state =
             |> Return.singleton
 
 
-nowAndLoop : Wrapper msg -> Time -> Controller msg
+nowAndLoop : Wrapper msg -> Time -> Control msg
 nowAndLoop wrapper delay state =
     Return.singleton state
         |> Return.command (stateCmd state)
@@ -113,7 +94,7 @@ nowAndLoop wrapper delay state =
             )
 
 
-loop : Wrapper msg -> Time -> Controller msg
+loop : Wrapper msg -> Time -> Control msg
 loop wrapper delay state =
     case state of
         -- Stop the loop if no new message was emitted.
