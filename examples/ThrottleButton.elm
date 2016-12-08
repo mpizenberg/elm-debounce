@@ -4,7 +4,7 @@ import Html exposing (Html)
 import Html.Events as HE
 import Html.Attributes as HA
 import Time
-import MsgControl
+import Controller exposing (Controller)
 
 
 main =
@@ -22,13 +22,13 @@ main =
 
 type alias Model =
     { count : Int
-    , state : MsgControl.State Msg
+    , state : Controller.State Msg
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { count = 0, state = MsgControl.init }
+    ( { count = 0, state = Controller.initialState }
     , Cmd.none
     )
 
@@ -39,7 +39,7 @@ init =
 
 type Msg
     = Increment
-    | Throttle (MsgControl.Msg Msg)
+    | Throttle (Controller Msg)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -50,16 +50,9 @@ update msg model =
             , Cmd.none
             )
 
-        Throttle controlMsg ->
-            let
-                ( newState, cmd ) =
-                    MsgControl.update
-                        (Throttle)
-                        (MsgControl.throttling <| 1 * Time.second)
-                        (controlMsg)
-                        (model.state)
-            in
-                ( { model | state = newState }, cmd )
+        Throttle controller ->
+            Controller.update model.state controller
+                |> Controller.updateState (\newState -> { model | state = newState })
 
 
 
@@ -78,4 +71,4 @@ view model =
 
 throttle : Msg -> Msg
 throttle =
-    Throttle << MsgControl.wrap
+    Throttle << Controller.throttle Throttle (1 * Time.second)

@@ -4,7 +4,7 @@ import Html exposing (Html)
 import Html.Events as HE
 import Html.Attributes as HA
 import Time
-import MsgControl
+import Controller exposing (Controller)
 
 
 main =
@@ -22,13 +22,13 @@ main =
 
 type alias Model =
     { text : String
-    , state : MsgControl.State Msg
+    , state : Controller.State Msg
     }
 
 
 initialModel : Model
 initialModel =
-    { text = "", state = MsgControl.init }
+    { text = "", state = Controller.initialState }
 
 
 init : ( Model, Cmd Msg )
@@ -42,7 +42,7 @@ init =
 
 type Msg
     = Text String
-    | Debounce (MsgControl.Msg Msg)
+    | Deb (Controller Msg)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -53,16 +53,9 @@ update msg model =
             , Cmd.none
             )
 
-        Debounce controlMsg ->
-            let
-                ( newState, cmd ) =
-                    MsgControl.update
-                        (Debounce)
-                        (MsgControl.debouncing <| 1 * Time.second)
-                        (controlMsg)
-                        (model.state)
-            in
-                ( { model | state = newState }, cmd )
+        Deb controller ->
+            Controller.update model.state controller
+                |> Controller.updateState (\newState -> { model | state = newState })
 
 
 
@@ -86,4 +79,4 @@ view model =
 
 debounce : Msg -> Msg
 debounce =
-    Debounce << MsgControl.wrap
+    Deb << Controller.debounce Deb (1 * Time.second)
