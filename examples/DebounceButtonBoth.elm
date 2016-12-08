@@ -4,7 +4,8 @@ import Html exposing (Html)
 import Html.Events as HE
 import Html.Attributes as HA
 import Time
-import Controller exposing (Controller)
+import Control exposing (Control)
+import Debounce
 
 
 main =
@@ -22,13 +23,13 @@ main =
 
 type alias Model =
     { count : Int
-    , state : Controller.State Msg
+    , state : Control.State Msg
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { count = 0, state = Controller.initialState }
+    ( { count = 0, state = Control.initialState }
     , Cmd.none
     )
 
@@ -39,7 +40,7 @@ init =
 
 type Msg
     = Increment
-    | Throttle (Controller Msg)
+    | Deb (Control Msg)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -50,9 +51,9 @@ update msg model =
             , Cmd.none
             )
 
-        Throttle controller ->
-            Controller.update model.state controller
-                |> Controller.updateState (\newState -> { model | state = newState })
+        Deb control ->
+            Control.update model.state control
+                |> Control.updateState (\newState -> { model | state = newState })
 
 
 
@@ -71,4 +72,4 @@ view model =
 
 throttle : Msg -> Msg
 throttle =
-    Throttle << Controller.throttle Throttle (1 * Time.second)
+    Debounce.both Deb (1 * Time.second)
