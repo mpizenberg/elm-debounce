@@ -91,6 +91,16 @@ reset =
     SM.set initialState Cmd.none
 
 
+performAndReset : Control msg
+performAndReset state =
+    ( initialState, stateCmd state )
+
+
+performAndInit : Control msg
+performAndInit ((State _ maybeMsg) as state) =
+    ( State 1 maybeMsg, stateCmd state )
+
+
 later : Wrapper msg -> Time -> Control msg -> Control msg
 later wrap delay control =
     control |> wrap |> Helpers.mkDeferredCmd delay |> SM.return
