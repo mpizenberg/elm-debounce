@@ -1,32 +1,68 @@
-module StateMonad
-    exposing
-        ( Return
-        , State
-        , run
-        , get
-        , andThen
-        , map
-        , filter
-        , condition
-        )
-
-
-type alias Return s a =
-    ( s, a )
+module StateMonad exposing (..)
 
 
 type alias State s a =
-    s -> Return s a
+    s -> ( s, a )
 
 
-run : s -> State s a -> Return s a
+
+-- RETRIEVE RESULTS ##################################################
+
+
+run : s -> State s a -> ( s, a )
 run s processor =
     processor s
+
+
+
+-- CONSTRUCT STATE ###################################################
+
+
+return : a -> State s a
+return a s =
+    ( s, a )
+
+
+embed : (s -> a) -> State s a
+embed f s =
+    ( s, f s )
+
+
+set : s -> a -> State s a
+set s a _ =
+    ( s, a )
 
 
 get : State s s
 get s =
     ( s, s )
+
+
+put : s -> State s ()
+put s _ =
+    ( s, () )
+
+
+modify : (s -> s) -> State s ()
+modify f s =
+    ( f s, () )
+
+
+modifyAndGet : (s -> s) -> State s s
+modifyAndGet f s =
+    ( f s, f s )
+
+
+condition : (s -> Bool) -> State s a -> State s a -> State s a
+condition predicate processor1 processor2 s =
+    if predicate s then
+        processor1 s
+    else
+        processor2 s
+
+
+
+-- MODIFYING STATE ###################################################
 
 
 andThen : (a -> State s b) -> State s a -> State s b
@@ -47,22 +83,18 @@ map k processor s0 =
         ( s1, k a )
 
 
-filter : (s -> Bool) -> (State s a -> State s a) -> State s a -> State s a
-filter predicate modifier processor s =
+mapState : (s -> s) -> State s a -> State s a
+mapState f processor s0 =
+    let
+        ( s1, a ) =
+            run s0 processor
+    in
+        ( f s1, a )
+
+
+when : (s -> Bool) -> (State s a -> State s a) -> State s a -> State s a
+when predicate modifier processor s =
     if predicate s then
         modifier processor s
     else
         processor s
-
-
-condition :
-    (s -> Bool)
-    -> (State s a -> State s b)
-    -> (State s a -> State s b)
-    -> State s a
-    -> State s b
-condition predicate modif1 modif2 processor s =
-    if predicate s then
-        modif1 processor s
-    else
-        modif2 processor s

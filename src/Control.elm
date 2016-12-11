@@ -27,6 +27,11 @@ isEmpty =
     isN 0
 
 
+isUnique : State msg -> Bool
+isUnique =
+    isN 1
+
+
 isN : Int -> State msg -> Bool
 isN n (State int _) =
     n == int
@@ -56,7 +61,7 @@ type alias Wrapper msg =
 
 
 type alias Return msg =
-    SM.Return (State msg) (Cmd msg)
+    ( State msg, Cmd msg )
 
 
 type alias Control msg =
@@ -81,37 +86,6 @@ update =
 -- HELPERS ###########################################################
 
 
-get : Control msg
-get state =
-    ( state, Cmd.none )
-
-
-init : State msg -> Control msg
-init state _ =
-    ( state, Cmd.none )
-
-
-reset : Control msg
-reset =
-    init initialState
-
-
-resetIfSame : State msg -> State msg -> Control msg
-resetIfSame oldState newState =
-    if sameState oldState newState then
-        reset
-    else
-        init newState
-
-
-later : Wrapper msg -> Time -> Control msg -> Control msg
-later wrapper delay control state =
-    ( state
-    , wrapper control
-        |> Helpers.mkDeferredCmd delay
-    )
-
-
 batch : Cmd msg -> Control msg -> Control msg
-batch cmd2 =
-    SM.map (\cmd1 -> Cmd.batch [ cmd1, cmd2 ])
+batch cmd =
+    SM.map (\cmd_ -> Cmd.batch [ cmd_, cmd ])
