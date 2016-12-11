@@ -86,6 +86,16 @@ update =
 -- HELPERS ###########################################################
 
 
+reset : Control msg
+reset =
+    SM.set initialState Cmd.none
+
+
+later : Wrapper msg -> Time -> Control msg -> Control msg
+later wrap delay control =
+    control |> wrap |> Helpers.mkDeferredCmd delay |> SM.return
+
+
 batch : Cmd msg -> Control msg -> Control msg
 batch cmd =
     SM.map (\cmd_ -> Cmd.batch [ cmd_, cmd ])

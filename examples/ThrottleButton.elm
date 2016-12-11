@@ -29,7 +29,7 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
-    ( { count = 0, state = Throttle.init }
+    ( { count = 0, state = Ctl.initialState }
     , Cmd.none
     )
 
