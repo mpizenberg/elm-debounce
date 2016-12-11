@@ -37,6 +37,16 @@ sameState (State n1 _) (State n2 _) =
     n1 == n2
 
 
+stateCmd : State msg -> Cmd msg
+stateCmd (State _ maybeMsg) =
+    case maybeMsg of
+        Nothing ->
+            Cmd.none
+
+        Just msg ->
+            Helpers.mkCmd msg
+
+
 
 -- TYPES #############################################################
 
@@ -69,6 +79,11 @@ update =
 
 
 -- HELPERS ###########################################################
+
+
+get : Control msg
+get state =
+    ( state, Cmd.none )
 
 
 init : State msg -> Control msg
