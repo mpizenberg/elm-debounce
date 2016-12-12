@@ -1,12 +1,22 @@
-module Throttle exposing (..)
+module Control.Throttle
+    exposing
+        ( leading
+        , trailing
+        , both
+        )
 
 {-| Throttle messages.
+
+@docs leading, trailing, both
+
 -}
 
 import Time exposing (Time)
 import Control as Ctl exposing (State, Wrapper, Control)
+import Control_ as Ctl
 import StateMonad as SM
 import Helpers as HP
+import State
 
 
 -- LEADING EDGE ######################################################
@@ -21,12 +31,12 @@ leading wrap delay msg =
 
 leading_ : Wrapper msg -> Time -> msg -> Control msg
 leading_ wrap delay msg =
-    SM.condition Ctl.isEmpty
+    SM.condition State.isEmpty
         (Ctl.later wrap delay Ctl.reset
             |> Ctl.batch (HP.mkCmd msg)
         )
         (SM.return Cmd.none)
-        |> SM.mapState (Ctl.increment msg)
+        |> SM.mapState (State.increment msg)
 
 
 
@@ -42,25 +52,31 @@ trailing wrap delay msg =
 
 trailing_ : Wrapper msg -> Time -> msg -> Control msg
 trailing_ wrap delay msg =
-    SM.condition Ctl.isEmpty
+    SM.condition State.isEmpty
         (Ctl.later wrap delay <| trailingDeferred True wrap delay)
         (SM.return Cmd.none)
-        |> SM.mapState (Ctl.increment msg)
+        |> SM.mapState (State.increment msg)
 
 
 trailingDeferred : Bool -> Wrapper msg -> Time -> Control msg
-trailingDeferred newMessage wrap delay ((Ctl.State n maybeMsg) as state) =
-    if newMessage && Ctl.isUnique state then
-        ( Ctl.initialState, Ctl.stateCmd state )
-    else if Ctl.isUnique state then
-        ( Ctl.initialState, Cmd.none )
-    else
-        ( Ctl.State 1 maybeMsg
-        , Cmd.batch
-            [ Ctl.stateCmd state
-            , HP.mkDeferredCmd delay <| wrap <| trailingDeferred False wrap delay
-            ]
-        )
+trailingDeferred newMessage wrap delay state =
+    let
+        ( _, maybeMsg ) =
+            State.get state
+    in
+        if newMessage && State.isUnique state then
+            ( State.init, State.cmd state )
+        else if State.isUnique state then
+            ( State.init, Cmd.none )
+        else
+            ( State.set 1 maybeMsg
+            , Cmd.batch
+                [ State.cmd state
+                , trailingDeferred False wrap delay
+                    |> wrap
+                    |> HP.mkDeferredCmd delay
+                ]
+            )
 
 
 
@@ -79,10 +95,10 @@ both wrap delay msg =
 
 both_ : Wrapper msg -> Time -> msg -> Control msg
 both_ wrap delay msg =
-    SM.condition Ctl.isEmpty
+    SM.condition State.isEmpty
         (trailingDeferred False wrap delay
             |> Ctl.later wrap delay
             |> Ctl.batch (HP.mkCmd msg)
         )
         (SM.return Cmd.none)
-        |> SM.mapState (Ctl.increment msg)
+        |> SM.mapState (State.increment msg)

@@ -1,111 +1,77 @@
-module Control exposing (..)
+module Control
+    exposing
+        ( State
+        , initialState
+        , Control
+        , Wrapper
+        , update
+        )
 
-import Time exposing (Time)
-import Helpers
+{-| Common types and functions shared by Debounce and Throttle.
+
+# Initialize the state of the message controller
+
+@docs State, initialState
+
+# Types aliases used in all the library
+
+@docs Control, Wrapper
+
+# Update your model
+
+@docs update
+
+-}
+
 import StateMonad as SM
+import State
 
 
 -- STATE #############################################################
 
 
-type State msg
-    = State Int (Maybe msg)
+{-| Internal state used for controlling the messages.
+-}
+type alias State msg =
+    State.State msg
 
 
+{-| Initialisation of the internal state.
+-}
 initialState : State msg
 initialState =
-    State 0 Nothing
-
-
-increment : msg -> State msg -> State msg
-increment msg (State n _) =
-    State (n + 1) (Just msg)
-
-
-isEmpty : State msg -> Bool
-isEmpty =
-    isN 0
-
-
-isUnique : State msg -> Bool
-isUnique =
-    isN 1
-
-
-isN : Int -> State msg -> Bool
-isN n (State int _) =
-    n == int
-
-
-sameState : State msg -> State msg -> Bool
-sameState (State n1 _) (State n2 _) =
-    n1 == n2
-
-
-stateCmd : State msg -> Cmd msg
-stateCmd (State _ maybeMsg) =
-    case maybeMsg of
-        Nothing ->
-            Cmd.none
-
-        Just msg ->
-            Helpers.mkCmd msg
+    State.init
 
 
 
 -- TYPES #############################################################
 
 
+{-| An alias for the specific "State Monad"
+used internally for controlling the messages.
+-}
+type alias Control msg =
+    -- SM.State (State msg) (Cmd msg)
+    State msg -> ( State msg, Cmd msg )
+
+
+{-| Type alias for a user defined message wrapper,
+transforming `Control msg` into user `msg`.
+-}
 type alias Wrapper msg =
     Control msg -> msg
-
-
-type alias Return msg =
-    ( State msg, Cmd msg )
-
-
-type alias Control msg =
-    SM.State (State msg) (Cmd msg)
 
 
 
 -- UPDATE ############################################################
 
 
-updateState : (State msg -> model) -> Return msg -> ( model, Cmd msg )
-updateState setState ( state, cmd ) =
-    ( setState state, cmd )
+{-| Update your model.
 
-
-update : State msg -> Control msg -> Return msg
-update =
-    SM.run
-
-
-
--- HELPERS ###########################################################
-
-
-reset : Control msg
-reset =
-    SM.set initialState Cmd.none
-
-
-performAndReset : Control msg
-performAndReset state =
-    ( initialState, stateCmd state )
-
-
-performAndInit : Control msg
-performAndInit ((State _ maybeMsg) as state) =
-    ( State 1 maybeMsg, stateCmd state )
-
-
-later : Wrapper msg -> Time -> Control msg -> Control msg
-later wrap delay control =
-    control |> wrap |> Helpers.mkDeferredCmd delay |> SM.return
-
-
-batch : Cmd msg -> Control msg -> Control msg
-batch cmd =
-    SM.map (\cmd_ -> Cmd.batch [ cmd_, cmd ])
+It needs a user defined State setter to be able to
+update the state inside the model.
+-}
+update : (State msg -> model) -> State msg -> Control msg -> ( model, Cmd msg )
+update setState state control =
+    SM.run state control
+        |> Tuple.mapFirst setState
