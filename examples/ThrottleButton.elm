@@ -72,4 +72,4 @@ view model =
 
 throttle : Msg -> Msg
 throttle =
-    Throttle.leading Throttle (1 * Time.second)
+    Throttle.both Throttle (3 * Time.second)

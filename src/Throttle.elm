@@ -61,3 +61,28 @@ trailingDeferred newMessage wrap delay ((Ctl.State n maybeMsg) as state) =
             , HP.mkDeferredCmd delay <| wrap <| trailingDeferred False wrap delay
             ]
         )
+
+
+
+-- BOTH EDGES ########################################################
+
+
+{-| Throttle on both leading and trailing edges.
+
+The trailing edge happen only if at least 2 messages are captured.
+We don't want to emit two times the same event.
+-}
+both : Wrapper msg -> Time -> msg -> msg
+both wrap delay msg =
+    wrap <| both_ wrap delay msg
+
+
+both_ : Wrapper msg -> Time -> msg -> Control msg
+both_ wrap delay msg =
+    SM.condition Ctl.isEmpty
+        (trailingDeferred False wrap delay
+            |> Ctl.later wrap delay
+            |> Ctl.batch (HP.mkCmd msg)
+        )
+        (SM.return Cmd.none)
+        |> SM.mapState (Ctl.increment msg)
