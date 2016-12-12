@@ -5,7 +5,7 @@ import Html.Events as HE
 import Html.Attributes as HA
 import Time
 import Control exposing (Control)
-import Debounce
+import Control.Debounce as Debounce
 
 
 main =
@@ -55,8 +55,10 @@ update msg model =
             )
 
         Deb control ->
-            Control.update model.state control
-                |> Control.updateState (\newState -> { model | state = newState })
+            Control.update
+                (\newstate -> { model | state = newstate })
+                model.state
+                control
 
 
 

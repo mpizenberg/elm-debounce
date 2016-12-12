@@ -5,7 +5,7 @@ import Html.Events as HE
 import Html.Attributes as HA
 import Time
 import Control as Ctl exposing (Control)
-import Throttle
+import Control.Throttle as Throttle
 
 
 main =
@@ -52,8 +52,10 @@ update msg model =
             )
 
         Throttle control ->
-            Ctl.update model.state control
-                |> Ctl.updateState (\newState -> { model | state = newState })
+            Ctl.update
+                (\newState -> { model | state = newState })
+                model.state
+                control
 
 
 
