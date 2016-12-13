@@ -7,6 +7,13 @@ module Control.Throttle
 
 {-| Throttle messages.
 
+Throttling is similar to debouncing,
+except that instead of triggering only 1 message of a group of messages,
+it triggers one every certain amount of time.
+
+For a complete minimalist example,
+please refer to the file: examples/ThrottleButton.elm
+
 @docs leading, trailing, both
 
 -}
@@ -23,6 +30,14 @@ import State
 
 
 {-| Throttle on leading edge ("immediate").
+
+    throttle : Msg -> Msg
+    throttle = Control.Throttle.leading Throttle (1 * Time.second)
+
+    view model =
+        button
+            [ map throttle <| onClick Increment ]
+            [ text "Click Fast!" ]
 -}
 leading : Wrapper msg -> Time -> msg -> msg
 leading wrap delay msg =
@@ -44,6 +59,14 @@ leading_ wrap delay msg =
 
 
 {-| Throttle on trailing edge ("later").
+
+    throttle : Msg -> Msg
+    throttle = Control.Throttle.trailing Throttle (1 * Time.second)
+
+    view model =
+        button
+            [ map throttle <| onClick Increment ]
+            [ text "Click Fast!" ]
 -}
 trailing : Wrapper msg -> Time -> msg -> msg
 trailing wrap delay msg =
@@ -86,7 +109,15 @@ trailingDeferred newMessage wrap delay state =
 {-| Throttle on both leading and trailing edges.
 
 The trailing edge happen only if at least 2 messages are captured.
-We don't want to emit two times the same event.
+We don't want to trigger two times the same event.
+
+    throttle : Msg -> Msg
+    throttle = Control.Throttle.both Throttle (1 * Time.second)
+
+    view model =
+        button
+            [ map throttle <| onClick Increment ]
+            [ text "Click Fast!" ]
 -}
 both : Wrapper msg -> Time -> msg -> msg
 both wrap delay msg =

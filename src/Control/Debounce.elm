@@ -7,6 +7,26 @@ module Control.Debounce
 
 {-| Debounce messages.
 
+Debounced messages are grouped together.
+Meaning if a message is emitted every second,
+but with a debounced delay of 2s,
+they will be all grouped together and only one
+of these messages will be triggered.
+
+Debouncing on leading edge will trigger the first message
+of the group (so immediately) whereas trailing edge will
+trigger the last of the group (later).
+
+If the `both` strategy is selected, and the group of messages
+contains at least 2 messages, both the first message (immediately)
+and the last one (later) of the group will be triggered.
+
+For complete minimalist examples,
+please refer to the files:
+
+* examples/DebounceTextTrailing.elm
+* examples/DebounceButtonBoth.elm
+
 @docs leading, trailing, both
 
 -}
@@ -23,6 +43,14 @@ import State
 
 
 {-| Debounce on leading edge ("immediate").
+
+    debounce : Msg -> Msg
+    debounce = Control.Debounce.leading Deb (1 * Time.second)
+
+    view model =
+        button
+            [ map debounce <| onClick Increment ]
+            [ text "Click Fast!" ]
 -}
 leading : Wrapper msg -> Time -> msg -> msg
 leading wrap delay msg =
@@ -49,6 +77,11 @@ leadingDeferred oldState =
 
 
 {-| Debounce on trailing edge ("later").
+
+    debounce : Msg -> Msg
+    debounce = Control.Debounce.trailing Deb (1 * Time.second)
+
+    view model = input [map debounce <| onInput Text] []
 -}
 trailing : Wrapper msg -> Time -> msg -> msg
 trailing wrap delay msg =
@@ -76,7 +109,15 @@ trailingDeferred oldState =
 {-| Debounce on both leading and trailing edges.
 
 The trailing edge happen only if at least 2 messages are captured.
-We don't want to emit two times the same event.
+We don't want to trigger two times the same event.
+
+    debounce : Msg -> Msg
+    debounce = Control.Debounce.both Deb (1 * Time.second)
+
+    view model =
+        button
+            [ map debounce <| onClick Increment ]
+            [ text "Click Fast!" ]
 -}
 both : Wrapper msg -> Time -> msg -> msg
 both wrap delay msg =
