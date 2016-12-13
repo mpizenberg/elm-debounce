@@ -80,7 +80,7 @@ Then we add the necessary stuff for the work to be done in Msg and update:
 Since it needs to update the state, you have to pass a function to do that.
 
 ```elm
-type Msg = Text String | Deb debMsg
+type Msg = Text String | Deb (Control Msg)
 update msg model =
     case msg of
         Text text -> ( {model | text = text }, Cmd.none )
