@@ -5,8 +5,29 @@
 [badge-license]: https://img.shields.io/badge/license-MPL%202.0-blue.svg?style=flat-square
 [license]: https://www.mozilla.org/en-US/MPL/2.0/
 
-This package aims at easing the control of messages
-with debouncing and throttling with as few modifications as possible.
+This package enables debouncing and throttling of messages
+with as few modifications as possible of the original code.
+
+Debouncing and throttling consist in limiting the number of time
+an emitted message is actually processed.
+For exemple with debouncing, we can detect when someone stop
+writing in a textarea.
+Let's say we debounce the change event of the area with a delay of 1s.
+It means that it won't emit anything until we make a pause
+of at least 1s.
+
+[!] put gif here.
+
+I detail in the usage section how to do that.
+
+For more details about debouncing and throttling,
+please refer to [this very good article][article]
+
+[article]: 
+
+Internally, it is coded using the State Monad concepts.
+Don't hesitate to peak at the code and give me feedback
+through issues or messages in the elm slack. (user mattpiz).
 
 ## Installation
 
@@ -16,24 +37,27 @@ elm-package install mpizenberg/elm-debounce
 
 ## Usage
 
-Let's say you have a button that do something when clicked:
+Let's say you have a writable input field.
+The model is updated each time your write something.
 ```elm
-type alias Model = { ... }
+type alias Model = { text : String }
+initialModel = { text = "" }
+init = ( initialModel, Cmd.none )
 
-type Msg = Clicked
-
+type Msg = Text String
 update msg model =
     case msg of
-        Clicked -> -- update here
+        Text text -> ( {model | text = text }, Cmd.none )
 
-view model = ... button [ onClick Clicked ] ...
+view model = input [onInput Text] []
 ```
 
-If we want to control the Clicked message by debouncing it,
-we process in 3 simple steps:
+This updates the model everytime we press a key.
+Now we want to change the model only when we stop writing in the input.
+We will use debouncing in 3 simple steps:
 
-1. We modify the model to hold the controlled state of the message.
-2. We add a new update message that do the controlling job.
+1. We modify the model to hold the debounced state of the message.
+2. We add a new update message that do the debouncing job.
 3. We mark the message we want to debounce in the view.
 
 That's it.
@@ -46,88 +70,44 @@ In functional programming, we want to be in control of the states,
 and not hide them where they could be source of bugs.
 
 ```elm
-type alias Model = { ... , state : MsgControl.State Msg }
-initialModel = { ... , state = MsgControl.init }
+type alias Model = { text : String, state : Control.State Msg }
+initialModel = { text = "", state = Control.initialState }
 ```
 
 ### Modification of the update
 
 Then we add the necessary stuff for the work to be done in Msg and update:
+Since it needs to update the state, you have to pass a function to do that.
 
 ```elm
-type Msg = Clicked | Debounce (MsgControl.Msg Msg)
-
+type Msg = Text String | Deb debMsg
 update msg model =
     case msg of
-        Clicked -> -- update here
-        Debounce controlMsg ->
-            let
-                ( newState, cmd ) =
-                    MsgControl.update
-                        (Debounce)
-                        (MsgControl.debouncing <| 1 * Time.second)
-                        (controlMsg)
-                        (model.state)
-            in
-                ( { model | state = newState }, cmd )
+        Text text -> ( {model | text = text }, Cmd.none )
+        Deb debMsg -> Control.update (\s -> { model | state = s }) model.state debMsg
 ```
-
-The important part here is:
-
-```elm
-( newState, cmd ) =
-    MsgControl.update
-        (Debounce) -- The message wrapper
-        (MsgControl.debouncing <| 1 * Time.second) -- The strategy
-        (controlMsg) -- The inner message
-        (model.state) -- The current state
-```
-
-Sometimes, MsgControl.update will produce a `Clicked` command
-(which is of type Cmd Msg).
-But most of the time (since the message is debounced),
-it will just do internal stuff, but still will need to produce a Cmd Msg
-(to respect the return types).
-So that's why we need to give it a message wrapper `Debounce`
-that it will use to wrap its inner messages.
-
-The strategy is what you want to do.
-Here we decide to debounce the message with a timeout of 1 second.
-
-The actual inner message is just an inner message,
-like in any other TEA component.
-
-And of course, since we hold the state, we need to give it to the update.
 
 ### Modification of the view
 
-Finally, we need a slight modification of the view.
-This is to guide the message generated on click to the controls.
-For that, we double wrap our message (better than your fastfood!).
-First we use the `MsgControl.wrap` helper to transform the `Msg`
-into a `MsgControl.Msg Msg`.
-Then we use our `Debounce` wrapper to transform it back to a `Msg`
-and guide it to the right controlled update.
+Finally, we need a slight modification of the view (the `map debounce`).
+For our usecase we will be using debouncing on trailing edge ("later").
+For other purposes, you could be using leading edge ("immediate) or both edges.
 
 ```elm
-import Html.Attributes as HA
-
-view model = ... button [ HA.map debounce <| onClick Clicked ] ...
-
-debounce : Msg -> Msg
-debounce =
-    Debounce << MsgControl.wrap
+view model = input [map debounce <| onInput Text] []
+debounce = Control.Debounce.trailing Deb (1 * Time.second)
 ```
 
 ## Examples
 
-You can find complete minimalist example files in the `examples` folder.
+The complete code of this very example is available in the `examples` folder,
+along with other minimalist examples using debouncing and throttling.
 To run the examples, simply use `elm-reactor`:
 
 ```shell
 $ cd examples/
 $ elm-reactor
-open http://localhost:8000/
+Listening on http://localhost:8000
 ```
 
 ## Documentation
@@ -147,7 +127,7 @@ and to star this package if you like it ;).
 
 ## References
 
-This work has been greatly inspired by the works of:
+The early days of this work have been greatly inspired by the works of:
 - [bcardiff/elm-debounce](https://github.com/bcardiff/elm-debounce).
 - [jinjor/elm-debounce](https://github.com/jinjor/elm-debounce).
 
