@@ -4,7 +4,7 @@ import Html exposing (Html)
 import Html.Events as HE
 import Html.Attributes as HA
 import Time
-import Control as Ctl exposing (Control)
+import Control exposing (Control)
 import Control.Throttle as Throttle
 
 
@@ -23,13 +23,13 @@ main =
 
 type alias Model =
     { count : Int
-    , state : Ctl.State Msg
+    , state : Control.State Msg
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { count = 0, state = Ctl.initialState }
+    ( { count = 0, state = Control.initialState }
     , Cmd.none
     )
 
@@ -52,7 +52,7 @@ update msg model =
             )
 
         Throttle control ->
-            Ctl.update
+            Control.update
                 (\newState -> { model | state = newState })
                 model.state
                 control
