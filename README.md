@@ -23,7 +23,7 @@ I detail in the usage section how to do that.
 For more details about debouncing and throttling,
 please refer to [this very good article][article]
 
-[article]: 
+[article]: https://css-tricks.com/debouncing-throttling-explained-examples/
 
 Internally, it is coded using the State Monad concepts.
 Don't hesitate to peak at the code and give me feedback
