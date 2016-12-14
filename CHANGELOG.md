@@ -1,3 +1,22 @@
+# 3.0.0
+
+The package has been entirely rewritten using principles of the State Monad.
+The functionalities have also been changed.
+Now the user have a fine control of the method to use (trailing, leading, both)
+for both debouncing and throttling.
+
+------ Added modules - MINOR ------
+
+    Control
+    Control.Debounce
+    Control.Throttle
+
+
+------ Removed modules - MAJOR ------
+
+    MsgControl
+
+
 # 2.0.0
 
 MAJOR changes:
