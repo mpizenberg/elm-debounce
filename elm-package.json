@@ -1,5 +1,5 @@
 {
-    "version": "3.0.0",
+    "version": "3.0.1",
     "summary": "Control messages with debouncing and throttling",
     "repository": "https://github.com/mpizenberg/elm-debounce.git",
     "license": "MPL2",
