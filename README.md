@@ -16,7 +16,7 @@ Let's say we debounce the change event of the area with a delay of 1s.
 It means that it won't emit anything until we make a pause
 of at least 1s.
 
-[!] put gif here.
+![](http://i.giphy.com/l0HlE4nupAppwlwRO.gif)
 
 I detail in the usage section how to do that.
 
