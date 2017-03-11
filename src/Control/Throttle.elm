@@ -55,7 +55,7 @@ leading_ wrap delay msg =
         (Ctl.later wrap delay Ctl.reset
             |> Ctl.batch (HP.mkCmd msg)
         )
-        (SM.return Cmd.none)
+        (Ctl.noCmd)
         |> SM.mapState (State.increment msg)
 
 
@@ -82,21 +82,21 @@ trailing_ : Wrapper msg -> Time -> msg -> Control msg
 trailing_ wrap delay msg =
     SM.condition State.isEmpty
         (Ctl.later wrap delay <| trailingDeferred True wrap delay)
-        (SM.return Cmd.none)
+        (Ctl.noCmd)
         |> SM.mapState (State.increment msg)
 
 
 trailingDeferred : Bool -> Wrapper msg -> Time -> Control msg
 trailingDeferred newMessage wrap delay state =
-    let
-        ( _, maybeMsg ) =
-            State.get state
-    in
-        if newMessage && State.isUnique state then
-            ( State.init, State.cmd state )
-        else if State.isUnique state then
-            ( State.init, Cmd.none )
-        else
+    if newMessage && State.isUnique state then
+        Ctl.performAndReset state
+    else if State.isUnique state then
+        Ctl.reset state
+    else
+        let
+            ( _, maybeMsg ) =
+                State.get state
+        in
             ( State.set 1 maybeMsg
             , Cmd.batch
                 [ State.cmd state
@@ -136,5 +136,5 @@ both_ wrap delay msg =
             |> Ctl.later wrap delay
             |> Ctl.batch (HP.mkCmd msg)
         )
-        (SM.return Cmd.none)
+        (Ctl.noCmd)
         |> SM.mapState (State.increment msg)

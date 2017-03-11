@@ -65,16 +65,15 @@ leading wrap delay msg =
 leading_ : Wrapper msg -> Time -> msg -> Control msg
 leading_ wrap delay msg =
     SM.modifyAndGet (State.increment msg)
-        |> SM.andThen
-            (leadingDeferred >> wrap >> HP.mkDeferredCmd delay >> SM.return)
+        |> SM.andThen (leadingDeferred >> Ctl.later wrap delay)
         |> SM.when State.isEmpty (Ctl.batch <| HP.mkCmd msg)
 
 
 leadingDeferred : State msg -> Control msg
 leadingDeferred oldState =
     SM.condition (State.isSame oldState)
-        (SM.set State.init Cmd.none)
-        (SM.return Cmd.none)
+        (Ctl.reset)
+        (Ctl.noCmd)
 
 
 
@@ -96,15 +95,14 @@ trailing wrap delay msg =
 trailing_ : Wrapper msg -> Time -> msg -> Control msg
 trailing_ wrap delay msg =
     SM.modifyAndGet (State.increment msg)
-        |> SM.andThen
-            (trailingDeferred >> wrap >> HP.mkDeferredCmd delay >> SM.return)
+        |> SM.andThen (trailingDeferred >> Ctl.later wrap delay)
 
 
 trailingDeferred : State msg -> Control msg
 trailingDeferred oldState =
     SM.condition (State.isSame oldState)
-        (SM.set State.init <| State.cmd oldState)
-        (SM.return Cmd.none)
+        (Ctl.performAndReset)
+        (Ctl.noCmd)
 
 
 

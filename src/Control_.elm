@@ -17,18 +17,14 @@ reset =
     SM.set State.init Cmd.none
 
 
+noCmd : Control msg
+noCmd =
+    SM.return Cmd.none
+
+
 performAndReset : Control msg
 performAndReset state =
     ( State.init, State.cmd state )
-
-
-performAndInit : Control msg
-performAndInit state =
-    let
-        ( _, maybeMsg ) =
-            State.get state
-    in
-        ( State.set 1 maybeMsg, State.cmd state )
 
 
 later : Wrapper msg -> Time -> Control msg -> Control msg
