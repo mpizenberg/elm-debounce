@@ -1,4 +1,4 @@
-# elm-debounce [![][badge-doc]][doc]  [![][badge-license]][license]
+# elm-debounce [![][badge-doc]][doc] [![][badge-license]][license]
 
 [badge-doc]: https://img.shields.io/badge/documentation-latest-yellow.svg?style=flat-square
 [doc]: http://package.elm-lang.org/packages/mpizenberg/elm-debounce/latest
@@ -7,6 +7,17 @@
 
 This package enables debouncing and throttling of messages
 with as few modifications as possible of the original code.
+
+> I do not have the time to update it to elm 0.19
+> with the modifications I wished in response to issues [#5][issue-5]
+> and [#6][issue-6] (removing functions and state monad,
+> move functionalities to update instead of view).
+>
+> You will probably find what you need with [Gizra/elm-debouncer][elm-debouncer].
+
+[issue-5]: https://github.com/mpizenberg/elm-debounce/issues/5
+[issue-6]: https://github.com/mpizenberg/elm-debounce/issues/6
+[elm-debouncer]: https://package.elm-lang.org/packages/Gizra/elm-debouncer/latest
 
 Debouncing and throttling consist in limiting the number of time
 an emitted message is actually processed.
@@ -39,6 +50,7 @@ elm-package install mpizenberg/elm-debounce
 
 Let's say you have a writable input field.
 The model is updated each time your write something.
+
 ```elm
 type alias Model = { text : String }
 initialModel = { text = "" }
@@ -128,6 +140,7 @@ and to star this package if you like it ;).
 ## References
 
 The early days of this work have been greatly inspired by the works of:
+
 - [bcardiff/elm-debounce](https://github.com/bcardiff/elm-debounce).
 - [jinjor/elm-debounce](https://github.com/jinjor/elm-debounce).
 
